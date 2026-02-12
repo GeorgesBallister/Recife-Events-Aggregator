@@ -40,7 +40,7 @@ const readEvents = () => {
         }
 
         fs.createReadStream(CSV_PATH)
-            .pipe(csv())
+            .pipe(csv({ mapHeaders: ({ header }) => header.toLowerCase() }))
             .on('data', (data) => {
                 // Converte strings 'true'/'false' de volta para booleanos
                 data.saved = data.saved === 'true';
@@ -68,14 +68,14 @@ const saveEvents = async (events) => {
         try {
             // Espera formato dd-mm-yyyy
             const parts = event.data.split('-');
-            
+
             // 2. SEGURANÇA: Garante que temos dia, mês e ano
             if (parts.length !== 3) return false;
 
             const [day, month, year] = parts;
             // Cria data no formato ISO (yyyy-mm-dd) para o construtor Date
             const eventDate = new Date(`${year}-${month}-${day}`);
-            
+
             // Se a data for inválida (ex: 30 de fevereiro), ignora
             if (isNaN(eventDate)) return false;
 
