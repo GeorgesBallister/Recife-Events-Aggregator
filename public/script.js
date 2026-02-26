@@ -1,5 +1,6 @@
 ﻿let allEvents = [];
 let currentTab = 'all'; // 'all' or 'saved'
+let displayLimit = 20; // How many to display initially
 
 function getSiteLabel(link) {
     if (!link || link === '#') return '';
@@ -12,8 +13,22 @@ function getSiteLabel(link) {
     }
 }
 
+// Normalize string for search (remove accents, case insensitive)
+function normalizeString(str) {
+    return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchEvents();
+    
+    // Add search input listener
+    document.getElementById('search-input').addEventListener('input', () => {
+        displayLimit = 20; // Reset display limit on search
+        renderEvents();
+    });
+    
+    // Add scroll listener for infinite scroll
+    window.addEventListener('scroll', handleScroll);
 });
 
 // Fetch events from API
@@ -27,6 +42,19 @@ async function fetchEvents() {
     }
 }
 
+// Handle scroll to load more events
+function handleScroll() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // Load more when 100px from bottom
+    if (scrollTop + windowHeight >= documentHeight - 100) {
+        displayLimit += 20; // Increase display limit
+        renderEvents();
+    }
+}
+
 // Trigger Backend Scraper
 async function syncEvents() {
     const btn = document.getElementById('btn-sync');
@@ -37,6 +65,7 @@ async function syncEvents() {
         const res = await fetch('/api/scrape', { method: 'POST' });
         const data = await res.json();
         allEvents = data.data; // Update local list
+        displayLimit = 20; // Reset display limit after sync
         renderEvents();
         alert('Novos eventos encontrados!');
     } catch (err) {
@@ -69,7 +98,7 @@ function renderEvents() {
     grid.innerHTML = '';
 
     // Filter Logic
-    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const searchTerm = normalizeString(document.getElementById('search-input').value);
     const typeFilter = document.getElementById('filter-type').value;
     const dateStart = document.getElementById('filter-date-start').value;
     const dateEnd = document.getElementById('filter-date-end').value;
@@ -79,8 +108,8 @@ function renderEvents() {
         if (currentTab === 'saved' && !e.saved) return false;
 
         // Search Filter
-        const matchesSearch = e.nome.toLowerCase().includes(searchTerm) ||
-            e.local.toLowerCase().includes(searchTerm);
+        const matchesSearch = normalizeString(e.nome).includes(searchTerm) ||
+            normalizeString(e.local).includes(searchTerm);
 
         // Type Filter
         const matchesType = typeFilter ? e.tipo.includes(typeFilter) : true;
@@ -105,7 +134,10 @@ function renderEvents() {
         return dateA - dateB;
     });
 
-    if (filtered.length === 0) {
+    // Limit display for infinite scroll
+    const displayed = filtered.slice(0, displayLimit);
+
+    if (displayed.length === 0) {
         if (countLabel) countLabel.innerText = '0 eventos na página';
         grid.innerHTML = '<p>Nenhum evento encontrado.</p>';
         return;
@@ -115,7 +147,7 @@ function renderEvents() {
         countLabel.innerText = `${filtered.length} evento${filtered.length > 1 ? 's' : ''} na página`;
     }
 
-    filtered.forEach(e => {
+    displayed.forEach(e => {
         const siteLabel = getSiteLabel(e.link);
         const card = document.createElement('div');
         card.className = 'event-card';
@@ -153,12 +185,14 @@ function toggleFilters() {
 
 function switchTab(tab) {
     currentTab = tab;
+    displayLimit = 20; // Reset display limit on tab switch
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
     renderEvents();
 }
 
 function applyFilters() {
+    displayLimit = 20; // Reset display limit on filter apply
     renderEvents();
 }
 
