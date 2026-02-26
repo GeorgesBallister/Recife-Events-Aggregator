@@ -9,7 +9,7 @@ const { readEvents, saveEvents } = require('./databaseService');
 const { scrapeAllWebsites, getLastWebScrapeStats } = require('./webScraperService');
 
 // API Key utilizada para autenticar chamadas na SerpApi.
-const API_KEY = "81bc9cb3c616192119614b3443dec5d664a906e1f4244cd713521feb42678e11";
+const API_KEY = "6b072076062d0efcae51d315db9d09daf0a82b0d48df488189d9cb42e97a04ca";
 // Instancia unica do cliente de busca.
 const search = new SerpApi.GoogleSearch(API_KEY);
 const AUDIT_CSV_PATH = path.join(__dirname, '../../data/auditoria.csv');
